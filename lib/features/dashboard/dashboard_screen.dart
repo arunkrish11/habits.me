@@ -1,22 +1,54 @@
+import '../../core/theme_provider.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+
 import '../../core/date_utils.dart';
+import '../../core/stats.dart';
 import '../../core/theme.dart';
+import '../../core/vote_buttons.dart';
 import '../../data/app_database.dart';
 import '../../data/providers.dart';
+import '../habit_detail/habit_detail_screen.dart';
 import '../new_habit/new_habit_screen.dart';
+import '../settings/settings_screen.dart';
 
-class DashboardScreen extends ConsumerWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  DateTime _day = dateOnly(DateTime.now());
+  bool _showInactive = true;
+
+  Future<void> _pickDay() async {
+    final d = await showDatePicker(
+      context: context,
+      firstDate: DateTime(2000),
+      lastDate: dateOnly(DateTime.now()),
+      initialDate: _day,
+    );
+    if (d != null) setState(() => _day = dateOnly(d));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.watch(themeProvider);
     final habits = ref.watch(habitsProvider).value ?? [];
-    final logs = ref.watch(todayLogsProvider).value ?? [];
-    final doneIds = logs.map((l) => l.habitId).toSet();
-    final active = habits.where((h) => h.isActive).toList();
-    final inactive = habits.where((h) => !h.isActive).toList();
+    final logs = ref.watch(allLogsProvider).value ?? [];
+    final active = habits.where((h) => !endedBefore(h, _day)).toList();
+    final inactive = habits.where((h) => endedBefore(h, _day)).toList();
+
+    Widget tile(Habit h, bool votes) => _HabitTile(
+      habit: h,
+      logs: logs.where((l) => l.habitId == h.id).toList(),
+      day: _day,
+      showVotes: votes,
+    );
 
     return Scaffold(
       body: SafeArea(
@@ -28,9 +60,23 @@ class DashboardScreen extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('habits.me',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text(DateFormat('EEE, MMM d').format(DateTime.now())),
+                  const Text(
+                    'habits.me',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  InkWell(
+                    onTap: _pickDay,
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Row(
+                        children: [
+                          Text(DateFormat('EEE, MMM d').format(_day)),
+                          const SizedBox(width: 6),
+                          const Icon(Icons.calendar_today, size: 16),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 24),
@@ -38,12 +84,26 @@ class DashboardScreen extends ConsumerWidget {
                 child: ListView(
                   children: [
                     const Text('Active'),
-                    ...active.map((h) => _HabitTile(
-                        habit: h, done: doneIds.contains(h.id))),
-                    const SizedBox(height: 24),
-                    const Text('Inactive'),
-                    ...inactive.map((h) => _HabitTile(
-                        habit: h, done: doneIds.contains(h.id))),
+                    ...active.map((h) => tile(h, true)),
+                    if (inactive.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      InkWell(
+                        onTap: () =>
+                            setState(() => _showInactive = !_showInactive),
+                        child: Row(
+                          children: [
+                            Text('Inactive (${inactive.length})'),
+                            const SizedBox(width: 4),
+                            Icon(
+                              _showInactive
+                                  ? Icons.expand_less
+                                  : Icons.expand_more,
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (_showInactive) ...inactive.map((h) => tile(h, false)),
+                    ],
                   ],
                 ),
               ),
@@ -52,17 +112,23 @@ class DashboardScreen extends ConsumerWidget {
                 children: [
                   FilledButton(
                     style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.card),
-                    onPressed: () {}, // Settings screen comes next
+                      backgroundColor: AppColors.card,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                    ),
                     child: const Text('Settings'),
                   ),
                   FilledButton(
                     style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.card),
+                      backgroundColor: AppColors.card,
+                      foregroundColor: Colors.white,
+                    ),
                     onPressed: () => Navigator.push(
                       context,
-                      MaterialPageRoute(
-                          builder: (_) => const NewHabitScreen()),
+                      MaterialPageRoute(builder: (_) => const NewHabitScreen()),
                     ),
                     child: const Text('New'),
                   ),
@@ -76,14 +142,24 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
-class _HabitTile extends ConsumerWidget {
-  const _HabitTile({required this.habit, required this.done});
+class _HabitTile extends StatelessWidget {
+  const _HabitTile({
+    required this.habit,
+    required this.logs,
+    required this.day,
+    required this.showVotes,
+  });
   final Habit habit;
-  final bool done;
+  final List<HabitLog> logs;
+  final DateTime day;
+  final bool showVotes;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final db = ref.read(dbProvider);
+  Widget build(BuildContext context) {
+    final key = dayKey(day);
+    final dayLog = logs.where((l) => l.day == key).firstOrNull;
+    final stats = calcStats(habit, logs);
+
     return Container(
       margin: const EdgeInsets.only(top: 8),
       decoration: BoxDecoration(
@@ -91,14 +167,19 @@ class _HabitTile extends ConsumerWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: ListTile(
-        // Tap toggles today's check, long press moves active <-> inactive
-        onTap: () => db.toggleLog(habit.id, dayKey(DateTime.now())),
-        onLongPress: () => db.setActive(habit.id, !habit.isActive),
-        title: Text(habit.title),
-        trailing: Icon(
-          done ? Icons.check_circle : Icons.circle_outlined,
-          color: done ? Colors.white : Colors.white54,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => HabitDetailScreen(habit: habit)),
         ),
+        title: Text(habit.title),
+        trailing: showVotes
+            ? VoteButtons(
+                habitId: habit.id,
+                status: dayLog?.status ?? 0,
+                percent: stats.consistency,
+                day: key,
+              )
+            : Text('${stats.consistency}%'),
       ),
     );
   }

@@ -1,8 +1,5 @@
-import 'dart:io' show Platform;
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
 part 'app_database.g.dart';
 
@@ -23,62 +20,71 @@ class HabitLogs extends Table {
   IntColumn get habitId =>
       integer().references(Habits, #id, onDelete: KeyAction.cascade)();
   TextColumn get day => text()(); // yyyy-MM-dd
+  // 1 = done (upvote), -1 = missed (downvote)
+  IntColumn get status => integer().withDefault(const Constant(1))();
 
   @override
   List<Set<Column>> get uniqueKeys => [
-        {habitId, day},
-      ];
+    {habitId, day},
+  ];
 }
 
 @DriftDatabase(tables: [Habits, HabitLogs])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase()
-      : super(driftDatabase(
-          name: 'habits',
-          native: DriftNativeOptions(
-            databasePath: () async {
-              // Android: use the default private storage
-              if (Platform.isAndroid) {
-                final dir = await getApplicationDocumentsDirectory();
-                return p.join(dir.path, 'habits.sqlite');
-              }
-              // Windows: save in the Downloads folder
-              final dir = await getDownloadsDirectory();
-              return p.join(dir!.path, 'habits.sqlite');
-            },
-          ),
-        ));
+  AppDatabase() : super(driftDatabase(name: 'habits'));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        beforeOpen: (details) async {
-          await customStatement('PRAGMA foreign_keys = ON');
-        },
-      );
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.addColumn(habitLogs, habitLogs.status);
+      }
+    },
+    beforeOpen: (details) async {
+      await customStatement('PRAGMA foreign_keys = ON');
+    },
+  );
 
   Stream<List<Habit>> watchHabits() => select(habits).watch();
 
   Future<int> addHabit(HabitsCompanion habit) => into(habits).insert(habit);
 
   Future<void> setActive(int id, bool active) =>
-      (update(habits)..where((t) => t.id.equals(id)))
-          .write(HabitsCompanion(isActive: Value(active)));
+      (update(habits)..where((t) => t.id.equals(id))).write(
+        HabitsCompanion(isActive: Value(active)),
+      );
 
-  Stream<List<HabitLog>> watchLogsForDay(String day) =>
-      (select(habitLogs)..where((t) => t.day.equals(day))).watch();
+  Future<void> updateHabit(int id, HabitsCompanion data) =>
+      (update(habits)..where((t) => t.id.equals(id))).write(data);
 
-  Future<void> toggleLog(int habitId, String day) async {
-    final existing = await (select(habitLogs)
-          ..where((t) => t.habitId.equals(habitId) & t.day.equals(day)))
-        .getSingleOrNull();
-    if (existing == null) {
-      await into(habitLogs)
-          .insert(HabitLogsCompanion.insert(habitId: habitId, day: day));
-    } else {
-      await (delete(habitLogs)..where((t) => t.id.equals(existing.id))).go();
-    }
-  }
+  // Its logs are deleted too (cascade)
+  Future<void> deleteHabit(int id) =>
+      (delete(habits)..where((t) => t.id.equals(id))).go();
+
+  Stream<List<HabitLog>> watchAllLogs() => select(habitLogs).watch();
+
+  // Same button again = clear. Other button = switch.
+  Future<void> setStatus(int habitId, String day, int status) => transaction(
+    () async {
+      final existing =
+          await (select(habitLogs)
+                ..where((t) => t.habitId.equals(habitId) & t.day.equals(day)))
+              .getSingleOrNull();
+      if (existing != null) {
+        await (delete(habitLogs)..where((t) => t.id.equals(existing.id))).go();
+      }
+      if (existing?.status != status) {
+        await into(habitLogs).insert(
+          HabitLogsCompanion.insert(
+            habitId: habitId,
+            day: day,
+            status: Value(status),
+          ),
+        );
+      }
+    },
+  );
 }

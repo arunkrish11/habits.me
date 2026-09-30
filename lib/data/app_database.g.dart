@@ -498,8 +498,18 @@ class $HabitLogsTable extends HabitLogs
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
   @override
-  List<GeneratedColumn> get $columns => [id, habitId, day];
+  late final GeneratedColumn<int> status = GeneratedColumn<int>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, habitId, day, status];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -531,6 +541,12 @@ class $HabitLogsTable extends HabitLogs
     } else if (isInserting) {
       context.missing(_dayMeta);
     }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    }
     return context;
   }
 
@@ -556,6 +572,10 @@ class $HabitLogsTable extends HabitLogs
         DriftSqlType.string,
         data['${effectivePrefix}day'],
       )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}status'],
+      )!,
     );
   }
 
@@ -569,13 +589,20 @@ class HabitLog extends DataClass implements Insertable<HabitLog> {
   final int id;
   final int habitId;
   final String day;
-  const HabitLog({required this.id, required this.habitId, required this.day});
+  final int status;
+  const HabitLog({
+    required this.id,
+    required this.habitId,
+    required this.day,
+    required this.status,
+  });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['habit_id'] = Variable<int>(habitId);
     map['day'] = Variable<String>(day);
+    map['status'] = Variable<int>(status);
     return map;
   }
 
@@ -584,6 +611,7 @@ class HabitLog extends DataClass implements Insertable<HabitLog> {
       id: Value(id),
       habitId: Value(habitId),
       day: Value(day),
+      status: Value(status),
     );
   }
 
@@ -596,6 +624,7 @@ class HabitLog extends DataClass implements Insertable<HabitLog> {
       id: serializer.fromJson<int>(json['id']),
       habitId: serializer.fromJson<int>(json['habitId']),
       day: serializer.fromJson<String>(json['day']),
+      status: serializer.fromJson<int>(json['status']),
     );
   }
   @override
@@ -605,19 +634,23 @@ class HabitLog extends DataClass implements Insertable<HabitLog> {
       'id': serializer.toJson<int>(id),
       'habitId': serializer.toJson<int>(habitId),
       'day': serializer.toJson<String>(day),
+      'status': serializer.toJson<int>(status),
     };
   }
 
-  HabitLog copyWith({int? id, int? habitId, String? day}) => HabitLog(
-    id: id ?? this.id,
-    habitId: habitId ?? this.habitId,
-    day: day ?? this.day,
-  );
+  HabitLog copyWith({int? id, int? habitId, String? day, int? status}) =>
+      HabitLog(
+        id: id ?? this.id,
+        habitId: habitId ?? this.habitId,
+        day: day ?? this.day,
+        status: status ?? this.status,
+      );
   HabitLog copyWithCompanion(HabitLogsCompanion data) {
     return HabitLog(
       id: data.id.present ? data.id.value : this.id,
       habitId: data.habitId.present ? data.habitId.value : this.habitId,
       day: data.day.present ? data.day.value : this.day,
+      status: data.status.present ? data.status.value : this.status,
     );
   }
 
@@ -626,46 +659,53 @@ class HabitLog extends DataClass implements Insertable<HabitLog> {
     return (StringBuffer('HabitLog(')
           ..write('id: $id, ')
           ..write('habitId: $habitId, ')
-          ..write('day: $day')
+          ..write('day: $day, ')
+          ..write('status: $status')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, habitId, day);
+  int get hashCode => Object.hash(id, habitId, day, status);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is HabitLog &&
           other.id == this.id &&
           other.habitId == this.habitId &&
-          other.day == this.day);
+          other.day == this.day &&
+          other.status == this.status);
 }
 
 class HabitLogsCompanion extends UpdateCompanion<HabitLog> {
   final Value<int> id;
   final Value<int> habitId;
   final Value<String> day;
+  final Value<int> status;
   const HabitLogsCompanion({
     this.id = const Value.absent(),
     this.habitId = const Value.absent(),
     this.day = const Value.absent(),
+    this.status = const Value.absent(),
   });
   HabitLogsCompanion.insert({
     this.id = const Value.absent(),
     required int habitId,
     required String day,
+    this.status = const Value.absent(),
   }) : habitId = Value(habitId),
        day = Value(day);
   static Insertable<HabitLog> custom({
     Expression<int>? id,
     Expression<int>? habitId,
     Expression<String>? day,
+    Expression<int>? status,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (habitId != null) 'habit_id': habitId,
       if (day != null) 'day': day,
+      if (status != null) 'status': status,
     });
   }
 
@@ -673,11 +713,13 @@ class HabitLogsCompanion extends UpdateCompanion<HabitLog> {
     Value<int>? id,
     Value<int>? habitId,
     Value<String>? day,
+    Value<int>? status,
   }) {
     return HabitLogsCompanion(
       id: id ?? this.id,
       habitId: habitId ?? this.habitId,
       day: day ?? this.day,
+      status: status ?? this.status,
     );
   }
 
@@ -693,6 +735,9 @@ class HabitLogsCompanion extends UpdateCompanion<HabitLog> {
     if (day.present) {
       map['day'] = Variable<String>(day.value);
     }
+    if (status.present) {
+      map['status'] = Variable<int>(status.value);
+    }
     return map;
   }
 
@@ -701,7 +746,8 @@ class HabitLogsCompanion extends UpdateCompanion<HabitLog> {
     return (StringBuffer('HabitLogsCompanion(')
           ..write('id: $id, ')
           ..write('habitId: $habitId, ')
-          ..write('day: $day')
+          ..write('day: $day, ')
+          ..write('status: $status')
           ..write(')'))
         .toString();
   }
@@ -1058,11 +1104,13 @@ typedef $$HabitLogsTableCreateCompanionBuilder = HabitLogsCompanion Function({
   Value<int> id,
   required int habitId,
   required String day,
+  Value<int> status,
 });
 typedef $$HabitLogsTableUpdateCompanionBuilder = HabitLogsCompanion Function({
   Value<int> id,
   Value<int> habitId,
   Value<String> day,
+  Value<int> status,
 });
 
 final class $$HabitLogsTableReferences
@@ -1103,6 +1151,11 @@ class $$HabitLogsTableFilterComposer
 
   ColumnFilters<String> get day => $composableBuilder(
     column: $table.day,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get status => $composableBuilder(
+    column: $table.status,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1149,6 +1202,11 @@ class $$HabitLogsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$HabitsTableOrderingComposer get habitId {
     final $$HabitsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -1187,6 +1245,9 @@ class $$HabitLogsTableAnnotationComposer
 
   GeneratedColumn<String> get day =>
       $composableBuilder(column: $table.day, builder: (column) => column);
+
+  GeneratedColumn<int> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
 
   $$HabitsTableAnnotationComposer get habitId {
     final $$HabitsTableAnnotationComposer composer = $composerBuilder(
@@ -1238,16 +1299,30 @@ class $$HabitLogsTableTableManager
               $$HabitLogsTableOrderingComposer($db: db, $table: table),
           createComputedFieldComposer: () =>
               $$HabitLogsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<int> id = const Value.absent(),
-            Value<int> habitId = const Value.absent(),
-            Value<String> day = const Value.absent(),
-          }) => HabitLogsCompanion(id: id, habitId: habitId, day: day),
-          createCompanionCallback: ({
-            Value<int> id = const Value.absent(),
-            required int habitId,
-            required String day,
-          }) => HabitLogsCompanion.insert(id: id, habitId: habitId, day: day),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> habitId = const Value.absent(),
+                Value<String> day = const Value.absent(),
+                Value<int> status = const Value.absent(),
+              }) => HabitLogsCompanion(
+                id: id,
+                habitId: habitId,
+                day: day,
+                status: status,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int habitId,
+                required String day,
+                Value<int> status = const Value.absent(),
+              }) => HabitLogsCompanion.insert(
+                id: id,
+                habitId: habitId,
+                day: day,
+                status: status,
+              ),
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
