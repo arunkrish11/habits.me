@@ -52,6 +52,12 @@ class _NewHabitScreenState extends ConsumerState<NewHabitScreen> {
   Future<void> _save() async {
     final title = _title.text.trim();
     if (title.isEmpty) return;
+    if (_endDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select an end date')),
+      );
+      return;
+    }
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     final db = ref.read(dbProvider);
@@ -152,20 +158,11 @@ class _NewHabitScreenState extends ConsumerState<NewHabitScreen> {
                     Expanded(
                       child: Text(
                         _endDate == null
-                            ? 'No end date'
+                            ? 'Select end date'
                             : DateFormat('d MMM, y').format(_endDate!),
                         style: const TextStyle(color: Colors.white),
                       ),
                     ),
-                    if (_endDate != null)
-                      InkWell(
-                        onTap: () => setState(() => _endDate = null),
-                        child: const Icon(
-                          Icons.close,
-                          size: 18,
-                          color: Colors.white,
-                        ),
-                      ),
                   ],
                 ),
               ),

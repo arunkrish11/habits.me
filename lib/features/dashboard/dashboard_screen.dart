@@ -1,5 +1,5 @@
 import '../../core/theme_provider.dart';
-
+import '../../core/backup_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -24,6 +24,13 @@ class DashboardScreen extends ConsumerStatefulWidget {
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   DateTime _day = dateOnly(DateTime.now());
   bool _showInactive = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback(
+        (_) => BackupService.runIfDue(ref.read(dbProvider)));
+  }
 
   Future<void> _pickDay() async {
     final d = await showDatePicker(
