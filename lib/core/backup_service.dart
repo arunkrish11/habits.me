@@ -36,6 +36,7 @@ class BackupService {
             'weekdays': h.weekdays,
             'endDate': h.endDate?.toIso8601String(),
             'isActive': h.isActive,
+            'icon': h.icon,
             'createdAt': h.createdAt.toIso8601String(),
           },
       ],
@@ -67,6 +68,7 @@ class BackupService {
                       : DateTime.parse(h['endDate'] as String),
                 ),
                 isActive: Value(h['isActive'] as bool),
+                icon: Value((h['icon'] ?? 0) as int),
                 createdAt: Value(DateTime.parse(h['createdAt'] as String)),
               ),
             );

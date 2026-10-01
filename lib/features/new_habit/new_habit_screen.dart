@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../../core/theme.dart';
 import '../../data/app_database.dart';
 import '../../data/providers.dart';
+import '../../core/habit_icons.dart';
 
 class NewHabitScreen extends ConsumerStatefulWidget {
   const NewHabitScreen({super.key, this.habit});
@@ -20,7 +21,7 @@ class NewHabitScreen extends ConsumerStatefulWidget {
 class _NewHabitScreenState extends ConsumerState<NewHabitScreen> {
   final _title = TextEditingController();
   DateTime? _endDate;
-
+  int _icon = 0;
   bool get _editing => widget.habit != null;
 
   @override
@@ -30,6 +31,7 @@ class _NewHabitScreenState extends ConsumerState<NewHabitScreen> {
     if (h != null) {
       _title.text = h.title;
       _endDate = h.endDate;
+      _icon = h.icon;
     }
   }
 
@@ -67,6 +69,7 @@ class _NewHabitScreenState extends ConsumerState<NewHabitScreen> {
           widget.habit!.id,
           HabitsCompanion(
             title: Value(title),
+            icon: Value(_icon),
             repeatMode: const Value(0),
             weekdays: const Value(127),
             endDate: Value(_endDate),
@@ -74,7 +77,11 @@ class _NewHabitScreenState extends ConsumerState<NewHabitScreen> {
         );
       } else {
         await db.addHabit(
-          HabitsCompanion.insert(title: title, endDate: Value(_endDate)),
+          HabitsCompanion.insert(
+            title: title,
+            icon: Value(_icon),
+            endDate: Value(_endDate),
+          ),
         );
       }
       messenger.showSnackBar(const SnackBar(content: Text('Saved')));
@@ -141,6 +148,28 @@ class _NewHabitScreenState extends ConsumerState<NewHabitScreen> {
                 borderSide: BorderSide.none,
               ),
             ),
+          ),
+          const SizedBox(height: 16),
+          const Text('Icon'),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (var i = 0; i < habitIcons.length; i++)
+                GestureDetector(
+                  onTap: () => setState(() => _icon = i),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: i == _icon ? AppColors.accent : AppColors.card,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(habitIcons[i], color: Colors.white),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 24),
           const Text('End Date'),
