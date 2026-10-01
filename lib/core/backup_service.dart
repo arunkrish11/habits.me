@@ -37,6 +37,8 @@ class BackupService {
             'endDate': h.endDate?.toIso8601String(),
             'isActive': h.isActive,
             'icon': h.icon,
+            'emoji': h.emoji,
+            'sortOrder': h.sortOrder,
             'createdAt': h.createdAt.toIso8601String(),
           },
       ],
@@ -69,6 +71,8 @@ class BackupService {
                 ),
                 isActive: Value(h['isActive'] as bool),
                 icon: Value((h['icon'] ?? 0) as int),
+                emoji: Value(h['emoji'] as String),
+                sortOrder: Value((h['sortOrder'] ?? 0) as int),
                 createdAt: Value(DateTime.parse(h['createdAt'] as String)),
               ),
             );

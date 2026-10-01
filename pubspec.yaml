@@ -47,6 +47,8 @@ dependencies:
   url_launcher: ^6.3.2
   file_picker: ^13.1.0
   package_info_plus: ^10.2.1
+  vibration: ^3.2.1
+  emoji_picker_flutter: ^4.5.4
 
 dev_dependencies:
   flutter_test:

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../data/app_database.dart';
+
 const habitIcons = <IconData>[
   Icons.check_circle_outline,
   Icons.menu_book,
@@ -26,3 +28,21 @@ const habitIcons = <IconData>[
   Icons.no_drinks,
   Icons.phone_android,
 ];
+
+// Shows the habit's emoji if it has one, otherwise its icon
+class HabitIcon extends StatelessWidget {
+  const HabitIcon(this.habit, {super.key, this.size = 24});
+  final Habit habit;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    if (habit.emoji.isNotEmpty) {
+      return Text(habit.emoji, style: TextStyle(fontSize: size));
+    }
+    return Icon(
+      habitIcons[habit.icon.clamp(0, habitIcons.length - 1)],
+      size: size,
+    );
+  }
+}

@@ -8,7 +8,7 @@ class ThemeNotifier extends Notifier<int> {
   int build() => AppColors.index;
 
   Future<void> select(int i) async {
-    AppColors.apply(presets[i], i);
+    AppColors.apply(i);
     state = i;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('theme_index', i);

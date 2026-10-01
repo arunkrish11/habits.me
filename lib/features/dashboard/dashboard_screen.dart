@@ -1,20 +1,21 @@
-import '../../core/theme_provider.dart';
-import '../../core/backup_service.dart';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/backup_service.dart';
 import '../../core/date_utils.dart';
+import '../../core/habit_icons.dart';
+import '../../core/haptic_service.dart';
 import '../../core/stats.dart';
 import '../../core/theme.dart';
+import '../../core/theme_provider.dart';
 import '../../core/vote_buttons.dart';
 import '../../data/app_database.dart';
 import '../../data/providers.dart';
 import '../habit_detail/habit_detail_screen.dart';
 import '../new_habit/new_habit_screen.dart';
 import '../settings/settings_screen.dart';
-import '../../core/habit_icons.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -26,6 +27,22 @@ class DashboardScreen extends ConsumerStatefulWidget {
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   DateTime _day = dateOnly(DateTime.now());
   bool _showInactive = true;
+
+  // The order you just dropped. It is shown right away, so the list does not
+  // jump back while the database is still saving.
+  List<int> _pending = [];
+
+  List<Habit> _ordered(List<Habit> items) {
+    if (_pending.isEmpty) return items;
+    final ids = items.map((h) => h.id).toList();
+    if (listEquals(ids, _pending)) {
+      _pending = []; // the database has caught up
+      return items;
+    }
+    final pos = {for (var i = 0; i < _pending.length; i++) _pending[i]: i};
+    if (!ids.every(pos.containsKey)) return items; // belongs to the other list
+    return [...items]..sort((a, b) => pos[a.id]!.compareTo(pos[b.id]!));
+  }
 
   @override
   void initState() {
@@ -45,21 +62,48 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (d != null) setState(() => _day = dateOnly(d));
   }
 
+  // Long press a habit, then drag it to a new position
+  Widget _group(List<Habit> items, bool votes, List<HabitLog> logs) {
+    return ReorderableListView(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      buildDefaultDragHandles: false,
+      onReorderStart: (_) => HapticService.tap(),
+      proxyDecorator: (child, index, animation) =>
+          Material(color: Colors.transparent, child: child),
+          onReorder: (oldIndex, newIndex) {
+            if (newIndex > oldIndex) newIndex -= 1;
+            final list = [...items];
+            list.insert(newIndex, list.removeAt(oldIndex));
+            setState(() => _pending = list.map((h) => h.id).toList());
+            ref.read(dbProvider).reorder(list);
+          },
+      children: [
+        for (var i = 0; i < items.length; i++)
+          ReorderableDelayedDragStartListener(
+            key: ValueKey(items[i].id),
+            index: i,
+            child: _HabitTile(
+              habit: items[i],
+              logs: logs.where((l) => l.habitId == items[i].id).toList(),
+              day: _day,
+              showVotes: votes,
+            ),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.watch(themeProvider);
     final habits = ref.watch(habitsProvider).value ?? [];
     final logs = ref.watch(allLogsProvider).value ?? [];
-    final active = habits.where((h) => !endedBefore(h, _day)).toList();
-    final inactive = habits.where((h) => endedBefore(h, _day)).toList();
-
-    Widget tile(Habit h, bool votes) => _HabitTile(
-      habit: h,
-      logs: logs.where((l) => l.habitId == h.id).toList(),
-      day: _day,
-      showVotes: votes,
-    );
-
+    final active =
+        _ordered(habits.where((h) => !endedBefore(h, _day)).toList());
+    final inactive =
+        _ordered(habits.where((h) => endedBefore(h, _day)).toList());
+        
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -129,7 +173,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           style: TextStyle(color: Colors.white70),
                         ),
                       ),
-                    ...active.map((h) => tile(h, true)),
+                    _group(active, true, logs),
                     if (inactive.isNotEmpty) ...[
                       const SizedBox(height: 24),
                       InkWell(
@@ -147,7 +191,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           ],
                         ),
                       ),
-                      if (_showInactive) ...inactive.map((h) => tile(h, false)),
+                      if (_showInactive) _group(inactive, false, logs),
                     ],
                   ],
                 ),
@@ -216,7 +260,7 @@ class _HabitTile extends StatelessWidget {
           context,
           MaterialPageRoute(builder: (_) => HabitDetailScreen(habit: habit)),
         ),
-        leading: Icon(habitIcons[habit.icon.clamp(0, habitIcons.length - 1)]),
+        leading: HabitIcon(habit),
         title: Text(habit.title),
         trailing: showVotes
             ? VoteButtons(
