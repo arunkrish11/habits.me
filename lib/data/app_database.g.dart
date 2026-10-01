@@ -94,6 +94,28 @@ class $HabitsTable extends Habits with TableInfo<$HabitsTable, Habit> {
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _emojiMeta = const VerificationMeta('emoji');
+  @override
+  late final GeneratedColumn<String> emoji = GeneratedColumn<String>(
+    'emoji',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -115,6 +137,8 @@ class $HabitsTable extends Habits with TableInfo<$HabitsTable, Habit> {
     endDate,
     isActive,
     icon,
+    emoji,
+    sortOrder,
     createdAt,
   ];
   @override
@@ -170,6 +194,18 @@ class $HabitsTable extends Habits with TableInfo<$HabitsTable, Habit> {
         icon.isAcceptableOrUnknown(data['icon']!, _iconMeta),
       );
     }
+    if (data.containsKey('emoji')) {
+      context.handle(
+        _emojiMeta,
+        emoji.isAcceptableOrUnknown(data['emoji']!, _emojiMeta),
+      );
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -213,6 +249,14 @@ class $HabitsTable extends Habits with TableInfo<$HabitsTable, Habit> {
         DriftSqlType.int,
         data['${effectivePrefix}icon'],
       )!,
+      emoji: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}emoji'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -234,6 +278,8 @@ class Habit extends DataClass implements Insertable<Habit> {
   final DateTime? endDate;
   final bool isActive;
   final int icon;
+  final String emoji;
+  final int sortOrder;
   final DateTime createdAt;
   const Habit({
     required this.id,
@@ -243,6 +289,8 @@ class Habit extends DataClass implements Insertable<Habit> {
     this.endDate,
     required this.isActive,
     required this.icon,
+    required this.emoji,
+    required this.sortOrder,
     required this.createdAt,
   });
   @override
@@ -257,6 +305,8 @@ class Habit extends DataClass implements Insertable<Habit> {
     }
     map['is_active'] = Variable<bool>(isActive);
     map['icon'] = Variable<int>(icon);
+    map['emoji'] = Variable<String>(emoji);
+    map['sort_order'] = Variable<int>(sortOrder);
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -272,6 +322,8 @@ class Habit extends DataClass implements Insertable<Habit> {
           : Value(endDate),
       isActive: Value(isActive),
       icon: Value(icon),
+      emoji: Value(emoji),
+      sortOrder: Value(sortOrder),
       createdAt: Value(createdAt),
     );
   }
@@ -289,6 +341,8 @@ class Habit extends DataClass implements Insertable<Habit> {
       endDate: serializer.fromJson<DateTime?>(json['endDate']),
       isActive: serializer.fromJson<bool>(json['isActive']),
       icon: serializer.fromJson<int>(json['icon']),
+      emoji: serializer.fromJson<String>(json['emoji']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -303,6 +357,8 @@ class Habit extends DataClass implements Insertable<Habit> {
       'endDate': serializer.toJson<DateTime?>(endDate),
       'isActive': serializer.toJson<bool>(isActive),
       'icon': serializer.toJson<int>(icon),
+      'emoji': serializer.toJson<String>(emoji),
+      'sortOrder': serializer.toJson<int>(sortOrder),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -315,6 +371,8 @@ class Habit extends DataClass implements Insertable<Habit> {
     Value<DateTime?> endDate = const Value.absent(),
     bool? isActive,
     int? icon,
+    String? emoji,
+    int? sortOrder,
     DateTime? createdAt,
   }) => Habit(
     id: id ?? this.id,
@@ -324,6 +382,8 @@ class Habit extends DataClass implements Insertable<Habit> {
     endDate: endDate.present ? endDate.value : this.endDate,
     isActive: isActive ?? this.isActive,
     icon: icon ?? this.icon,
+    emoji: emoji ?? this.emoji,
+    sortOrder: sortOrder ?? this.sortOrder,
     createdAt: createdAt ?? this.createdAt,
   );
   Habit copyWithCompanion(HabitsCompanion data) {
@@ -337,6 +397,8 @@ class Habit extends DataClass implements Insertable<Habit> {
       endDate: data.endDate.present ? data.endDate.value : this.endDate,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
       icon: data.icon.present ? data.icon.value : this.icon,
+      emoji: data.emoji.present ? data.emoji.value : this.emoji,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -351,6 +413,8 @@ class Habit extends DataClass implements Insertable<Habit> {
           ..write('endDate: $endDate, ')
           ..write('isActive: $isActive, ')
           ..write('icon: $icon, ')
+          ..write('emoji: $emoji, ')
+          ..write('sortOrder: $sortOrder, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -365,6 +429,8 @@ class Habit extends DataClass implements Insertable<Habit> {
     endDate,
     isActive,
     icon,
+    emoji,
+    sortOrder,
     createdAt,
   );
   @override
@@ -378,6 +444,8 @@ class Habit extends DataClass implements Insertable<Habit> {
           other.endDate == this.endDate &&
           other.isActive == this.isActive &&
           other.icon == this.icon &&
+          other.emoji == this.emoji &&
+          other.sortOrder == this.sortOrder &&
           other.createdAt == this.createdAt);
 }
 
@@ -389,6 +457,8 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
   final Value<DateTime?> endDate;
   final Value<bool> isActive;
   final Value<int> icon;
+  final Value<String> emoji;
+  final Value<int> sortOrder;
   final Value<DateTime> createdAt;
   const HabitsCompanion({
     this.id = const Value.absent(),
@@ -398,6 +468,8 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
     this.endDate = const Value.absent(),
     this.isActive = const Value.absent(),
     this.icon = const Value.absent(),
+    this.emoji = const Value.absent(),
+    this.sortOrder = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   HabitsCompanion.insert({
@@ -408,6 +480,8 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
     this.endDate = const Value.absent(),
     this.isActive = const Value.absent(),
     this.icon = const Value.absent(),
+    this.emoji = const Value.absent(),
+    this.sortOrder = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : title = Value(title);
   static Insertable<Habit> custom({
@@ -418,6 +492,8 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
     Expression<DateTime>? endDate,
     Expression<bool>? isActive,
     Expression<int>? icon,
+    Expression<String>? emoji,
+    Expression<int>? sortOrder,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -428,6 +504,8 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
       if (endDate != null) 'end_date': endDate,
       if (isActive != null) 'is_active': isActive,
       if (icon != null) 'icon': icon,
+      if (emoji != null) 'emoji': emoji,
+      if (sortOrder != null) 'sort_order': sortOrder,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -440,6 +518,8 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
     Value<DateTime?>? endDate,
     Value<bool>? isActive,
     Value<int>? icon,
+    Value<String>? emoji,
+    Value<int>? sortOrder,
     Value<DateTime>? createdAt,
   }) {
     return HabitsCompanion(
@@ -450,6 +530,8 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
       endDate: endDate ?? this.endDate,
       isActive: isActive ?? this.isActive,
       icon: icon ?? this.icon,
+      emoji: emoji ?? this.emoji,
+      sortOrder: sortOrder ?? this.sortOrder,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -478,6 +560,12 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
     if (icon.present) {
       map['icon'] = Variable<int>(icon.value);
     }
+    if (emoji.present) {
+      map['emoji'] = Variable<String>(emoji.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -494,6 +582,8 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
           ..write('endDate: $endDate, ')
           ..write('isActive: $isActive, ')
           ..write('icon: $icon, ')
+          ..write('emoji: $emoji, ')
+          ..write('sortOrder: $sortOrder, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -827,6 +917,8 @@ typedef $$HabitsTableCreateCompanionBuilder = HabitsCompanion Function({
   Value<DateTime?> endDate,
   Value<bool> isActive,
   Value<int> icon,
+  Value<String> emoji,
+  Value<int> sortOrder,
   Value<DateTime> createdAt,
 });
 typedef $$HabitsTableUpdateCompanionBuilder = HabitsCompanion Function({
@@ -837,6 +929,8 @@ typedef $$HabitsTableUpdateCompanionBuilder = HabitsCompanion Function({
   Value<DateTime?> endDate,
   Value<bool> isActive,
   Value<int> icon,
+  Value<String> emoji,
+  Value<int> sortOrder,
   Value<DateTime> createdAt,
 });
 
@@ -904,6 +998,16 @@ class $$HabitsTableFilterComposer
 
   ColumnFilters<int> get icon => $composableBuilder(
     column: $table.icon,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get emoji => $composableBuilder(
+    column: $table.emoji,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -982,6 +1086,16 @@ class $$HabitsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get emoji => $composableBuilder(
+    column: $table.emoji,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -1019,6 +1133,12 @@ class $$HabitsTableAnnotationComposer
 
   GeneratedColumn<int> get icon =>
       $composableBuilder(column: $table.icon, builder: (column) => column);
+
+  GeneratedColumn<String> get emoji =>
+      $composableBuilder(column: $table.emoji, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -1084,6 +1204,8 @@ class $$HabitsTableTableManager
                 Value<DateTime?> endDate = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
                 Value<int> icon = const Value.absent(),
+                Value<String> emoji = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => HabitsCompanion(
                 id: id,
@@ -1093,6 +1215,8 @@ class $$HabitsTableTableManager
                 endDate: endDate,
                 isActive: isActive,
                 icon: icon,
+                emoji: emoji,
+                sortOrder: sortOrder,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -1104,6 +1228,8 @@ class $$HabitsTableTableManager
                 Value<DateTime?> endDate = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
                 Value<int> icon = const Value.absent(),
+                Value<String> emoji = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => HabitsCompanion.insert(
                 id: id,
@@ -1113,6 +1239,8 @@ class $$HabitsTableTableManager
                 endDate: endDate,
                 isActive: isActive,
                 icon: icon,
+                emoji: emoji,
+                sortOrder: sortOrder,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0

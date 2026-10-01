@@ -1,9 +1,8 @@
-import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../data/providers.dart';
 import 'date_utils.dart';
+import 'haptic_service.dart';
 import 'theme.dart';
 
 class VoteButtons extends ConsumerWidget {
@@ -19,25 +18,29 @@ class VoteButtons extends ConsumerWidget {
   final int percent;
   final String? day;
 
+  // 48px tap area, 32px visible box
   Widget _box(
-    IconData icon,
-    bool active,
-    Color activeColor,
-    VoidCallback onTap,
-  ) {
+      IconData icon, bool active, Color activeColor, VoidCallback onTap) {
     return InkWell(
+      borderRadius: BorderRadius.circular(24),
       onTap: () {
-        HapticFeedback.lightImpact();
+        HapticService.tap();
         onTap();
       },
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          color: active ? activeColor : AppColors.background,
-          borderRadius: BorderRadius.circular(6),
+      child: SizedBox(
+        width: 48,
+        height: 48,
+        child: Center(
+          child: Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: active ? activeColor : AppColors.background,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(icon, size: 18),
+          ),
         ),
-        child: Icon(icon, size: 18),
       ),
     );
   }
@@ -49,22 +52,14 @@ class VoteButtons extends ConsumerWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _box(
-          Icons.arrow_downward,
-          status == -1,
-          const Color(0xFF8B2E3C),
-          () => db.setStatus(habitId, target, -1),
-        ),
+        _box(Icons.arrow_downward, status == -1, const Color(0xFF8B2E3C),
+            () => db.setStatus(habitId, target, -1)),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 2),
           child: Text('$percent%'),
         ),
-        _box(
-          Icons.arrow_upward,
-          status == 1,
-          AppColors.accent,
-          () => db.setStatus(habitId, target, 1),
-        ),
+        _box(Icons.arrow_upward, status == 1, AppColors.accent,
+            () => db.setStatus(habitId, target, 1)),
       ],
     );
   }

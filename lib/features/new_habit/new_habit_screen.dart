@@ -1,14 +1,14 @@
-import '../../core/theme_provider.dart';
-
 import 'package:drift/drift.dart' show Value;
+import 'emoji_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/habit_icons.dart';
 import '../../core/theme.dart';
+import '../../core/theme_provider.dart';
 import '../../data/app_database.dart';
 import '../../data/providers.dart';
-import '../../core/habit_icons.dart';
 
 class NewHabitScreen extends ConsumerStatefulWidget {
   const NewHabitScreen({super.key, this.habit});
@@ -20,8 +20,10 @@ class NewHabitScreen extends ConsumerStatefulWidget {
 
 class _NewHabitScreenState extends ConsumerState<NewHabitScreen> {
   final _title = TextEditingController();
-  DateTime? _endDate;
+  String _emoji = ''; // empty = use the icon grid
   int _icon = 0;
+  DateTime? _endDate;
+
   bool get _editing => widget.habit != null;
 
   @override
@@ -30,8 +32,9 @@ class _NewHabitScreenState extends ConsumerState<NewHabitScreen> {
     final h = widget.habit;
     if (h != null) {
       _title.text = h.title;
-      _endDate = h.endDate;
       _icon = h.icon;
+      _emoji = h.emoji;
+      _endDate = h.endDate;
     }
   }
 
@@ -51,16 +54,28 @@ class _NewHabitScreenState extends ConsumerState<NewHabitScreen> {
     if (d != null) setState(() => _endDate = d);
   }
 
+  Future<void> _pickEmoji() async {
+    FocusScope.of(context).unfocus();
+    final emoji = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => const EmojiScreen(),
+      ),
+    );
+    if (emoji != null) setState(() => _emoji = emoji);
+  }
+
   Future<void> _save() async {
     final title = _title.text.trim();
     if (title.isEmpty) return;
+    final messenger = ScaffoldMessenger.of(context);
     if (_endDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Please select an end date')),
       );
       return;
     }
-    final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     final db = ref.read(dbProvider);
     try {
@@ -70,6 +85,7 @@ class _NewHabitScreenState extends ConsumerState<NewHabitScreen> {
           HabitsCompanion(
             title: Value(title),
             icon: Value(_icon),
+            emoji: Value(_emoji),
             repeatMode: const Value(0),
             weekdays: const Value(127),
             endDate: Value(_endDate),
@@ -80,6 +96,7 @@ class _NewHabitScreenState extends ConsumerState<NewHabitScreen> {
           HabitsCompanion.insert(
             title: title,
             icon: Value(_icon),
+            emoji: Value(_emoji),
             endDate: Value(_endDate),
           ),
         );
@@ -95,16 +112,16 @@ class _NewHabitScreenState extends ConsumerState<NewHabitScreen> {
     final navigator = Navigator.of(context);
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title: const Text('Delete habit?'),
         content: const Text('This also deletes its history.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Delete'),
           ),
         ],
@@ -118,7 +135,7 @@ class _NewHabitScreenState extends ConsumerState<NewHabitScreen> {
   @override
   Widget build(BuildContext context) {
     ref.watch(themeProvider);
-    const radius = 12.0;
+    final usingEmoji = _emoji.isNotEmpty;
     return Scaffold(
       appBar: AppBar(
         leading: TextButton(
@@ -144,7 +161,7 @@ class _NewHabitScreenState extends ConsumerState<NewHabitScreen> {
               fillColor: AppColors.card,
               contentPadding: const EdgeInsets.all(16),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(radius),
+                borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
               ),
             ),
@@ -158,16 +175,56 @@ class _NewHabitScreenState extends ConsumerState<NewHabitScreen> {
             children: [
               for (var i = 0; i < habitIcons.length; i++)
                 GestureDetector(
-                  onTap: () => setState(() => _icon = i),
+                  onTap: () => setState(() {
+                    _icon = i;
+                    _emoji = '';
+                  }),
                   child: Container(
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: i == _icon ? AppColors.accent : AppColors.card,
+                      color: (i == _icon && !usingEmoji)
+                          ? AppColors.accent
+                          : AppColors.card,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(habitIcons[i], color: Colors.white),
+                    child: Icon(habitIcons[i]),
                   ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Text('Custom emoji'),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              GestureDetector(
+                onTap: _pickEmoji,
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: usingEmoji ? AppColors.accent : AppColors.card,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: usingEmoji
+                      ? Text(_emoji, style: const TextStyle(fontSize: 28))
+                      : const Icon(Icons.add_reaction_outlined),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  usingEmoji ? 'Tap to change' : 'Tap to choose an emoji',
+                  style: const TextStyle(color: Colors.white70),
+                ),
+              ),
+              if (usingEmoji)
+                IconButton(
+                  tooltip: 'Remove emoji',
+                  icon: const Icon(Icons.close),
+                  onPressed: () => setState(() => _emoji = ''),
                 ),
             ],
           ),
@@ -176,23 +233,17 @@ class _NewHabitScreenState extends ConsumerState<NewHabitScreen> {
           const SizedBox(height: 8),
           Material(
             color: AppColors.card,
-            borderRadius: BorderRadius.circular(radius),
+            borderRadius: BorderRadius.circular(12),
             child: InkWell(
-              borderRadius: BorderRadius.circular(radius),
+              borderRadius: BorderRadius.circular(12),
               onTap: _pickDate,
-              child: Padding(
+              child: Container(
+                width: double.infinity,
                 padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _endDate == null
-                            ? 'Select end date'
-                            : DateFormat('d MMM, y').format(_endDate!),
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  _endDate == null
+                      ? 'Select end date'
+                      : DateFormat('d MMM, y').format(_endDate!),
                 ),
               ),
             ),
@@ -205,7 +256,7 @@ class _NewHabitScreenState extends ConsumerState<NewHabitScreen> {
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.all(16),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(radius),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
               onPressed: _delete,

@@ -1,14 +1,14 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-// import 'package:intl/intl.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/backup_service.dart';
+import '../../core/haptic_service.dart';
 import '../../core/notification_service.dart';
 import '../../core/theme.dart';
 import '../../core/theme_provider.dart';
@@ -40,6 +40,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void _msg(String text) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
 
+  // ---- Notifications ----
   Future<void> _pickTime() async {
     final t = await showTimePicker(
       context: context,
@@ -55,11 +56,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Future<void> _turnOff() async {
-    await NotificationService.clear();
-    if (mounted) setState(() => _reminder = null);
+  Future<void> _toggleReminder(bool on) async {
+    if (on) {
+      await _pickTime();
+    } else {
+      await NotificationService.clear();
+      if (mounted) setState(() => _reminder = null);
+    }
   }
 
+  // ---- Backups ----
   Future<void> _create() async {
     try {
       final json = await BackupService.buildJson(ref.read(dbProvider));
@@ -123,34 +129,53 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final selected = ref.watch(themeProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Settings'), centerTitle: true),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text('Theme Color'),
+          const Text('Theme'),
           const SizedBox(height: 8),
           Container(
+            width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppColors.card,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: GridView.count(
+              crossAxisCount: 5,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
               children: [
                 for (var i = 0; i < presets.length; i++)
-                  GestureDetector(
-                    onTap: () => ref.read(themeProvider.notifier).select(i),
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: presets[i].accent,
-                        shape: BoxShape.circle,
-                        border: i == selected
-                            ? Border.all(color: Colors.white, width: 3)
-                            : null,
+                  Tooltip(
+                    message: presets[i].name,
+                    child: GestureDetector(
+                      onTap: () => ref.read(themeProvider.notifier).select(i),
+                      child: Container(
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: presets[i].background,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: i == selected
+                                ? Colors.white
+                                : Colors.white24,
+                            width: i == selected ? 3 : 1,
+                          ),
+                        ),
+                        child: Container(
+                          width: 18,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            color: presets[i].accent,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -161,18 +186,49 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const Text('Notifications'),
           const SizedBox(height: 8),
           _card([
-            ListTile(
-              title: Text(
-                _reminder == null ? 'Off' : _reminder!.format(context),
-              ),
-              onTap: _pickTime,
-              trailing: _reminder == null
-                  ? null
-                  : IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: _turnOff,
-                    ),
+            SwitchListTile(
+              title: const Text('Daily reminder'),
+              value: _reminder != null,
+              onChanged: _toggleReminder,
             ),
+            if (_reminder != null)
+              ListTile(
+                title: const Text('Time'),
+                trailing: Text(_reminder!.format(context)),
+                onTap: _pickTime,
+              ),
+          ]),
+          const SizedBox(height: 24),
+          const Text('Haptic feedback'),
+          const SizedBox(height: 8),
+          _card([
+            SwitchListTile(
+              title: const Text('Vibrate on tap'),
+              value: HapticService.enabled,
+              onChanged: (v) async {
+                setState(() => HapticService.enabled = v);
+                await HapticService.save();
+                if (v) HapticService.tap();
+              },
+            ),
+            if (HapticService.enabled)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Vibration level'),
+                    Slider(
+                      value: HapticService.level,
+                      onChanged: (v) => setState(() => HapticService.level = v),
+                      onChangeEnd: (_) async {
+                        await HapticService.save();
+                        HapticService.tap();
+                      },
+                    ),
+                  ],
+                ),
+              ),
           ]),
           const SizedBox(height: 24),
           const Text('Backups'),
