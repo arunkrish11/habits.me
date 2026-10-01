@@ -1,4 +1,16 @@
 # Changelog
+## [2.0.0] - 2026-10-02
+
+### Added
+- Long-press to reorder habits (Active and Inactive lists)
+- Custom emoji as habit icons
+- 12 fixed themes (Black, Charcoal, Midnight, Dark Forest, Dark Teal, Wine, Coffee, etc.)
+- Notification on/off switch in Settings
+- Rewritten haptics with strength slider
+
+### Changed
+- Database schema 4: added `emoji` and `sortOrder` columns
+- Backups now include emoji and sortOrder
 
 ## 1.0.1
 - Added a habit icon picker, and icons on the dashboard
