@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -204,6 +205,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
           ]),
+          const SizedBox(height: 24),
+          FutureBuilder<PackageInfo>(
+            future: PackageInfo.fromPlatform(),
+            builder: (context, s) => Center(
+              child: Text(
+                s.hasData ? 'v${s.data!.version} (${s.data!.buildNumber})' : '',
+                style: const TextStyle(fontSize: 12, color: Colors.white54),
+              ),
+            ),
+          ),
         ],
       ),
     );

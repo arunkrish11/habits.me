@@ -1,5 +1,6 @@
 import '../../core/theme_provider.dart';
 import '../../core/backup_service.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -13,6 +14,7 @@ import '../../data/providers.dart';
 import '../habit_detail/habit_detail_screen.dart';
 import '../new_habit/new_habit_screen.dart';
 import '../settings/settings_screen.dart';
+import '../../core/habit_icons.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -29,7 +31,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback(
-        (_) => BackupService.runIfDue(ref.read(dbProvider)));
+      (_) => BackupService.runIfDue(ref.read(dbProvider)),
+    );
   }
 
   Future<void> _pickDay() async {
@@ -86,11 +89,46 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
                 ],
               ),
+              if (_day != dateOnly(DateTime.now())) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Viewing ${DateFormat('d MMM').format(_day)}',
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () =>
+                            setState(() => _day = dateOnly(DateTime.now())),
+                        child: const Text('Back to today'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 24),
               Expanded(
                 child: ListView(
                   children: [
                     const Text('Active'),
+                    if (active.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Text(
+                          'No active habits yet. Tap New to create one.',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      ),
                     ...active.map((h) => tile(h, true)),
                     if (inactive.isNotEmpty) ...[
                       const SizedBox(height: 24),
@@ -178,6 +216,7 @@ class _HabitTile extends StatelessWidget {
           context,
           MaterialPageRoute(builder: (_) => HabitDetailScreen(habit: habit)),
         ),
+        leading: Icon(habitIcons[habit.icon.clamp(0, habitIcons.length - 1)]),
         title: Text(habit.title),
         trailing: showVotes
             ? VoteButtons(

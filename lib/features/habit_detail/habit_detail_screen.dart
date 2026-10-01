@@ -31,17 +31,14 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
   void _shift(int delta) =>
       setState(() => _month = DateTime(_month.year, _month.month + delta));
 
-  Widget _statRow(String value, String label) => Padding(
+  Widget _statRow(IconData icon, String value, String label) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 8),
     child: Row(
       children: [
-        Container(
+        SizedBox(
           width: 32,
           height: 32,
-          decoration: BoxDecoration(
-            color: Colors.grey.shade400,
-            borderRadius: BorderRadius.circular(6),
-          ),
+          child: Icon(icon, size: 28, color: Colors.white),
         ),
         const SizedBox(width: 12),
         Column(
@@ -131,9 +128,21 @@ class _HabitDetailScreenState extends ConsumerState<HabitDetailScreen> {
             ),
             child: Column(
               children: [
-                _statRow('${stats.consistency}%', 'Consistency Score'),
-                _statRow('${stats.current} days', 'Current Streak'),
-                _statRow('${stats.longest} days', 'Longest Streak'),
+                _statRow(
+                  Icons.show_chart,
+                  '${stats.consistency}%',
+                  'Consistency Score',
+                ),
+                _statRow(
+                  Icons.local_fire_department_outlined,
+                  '${stats.current} days',
+                  'Current Streak',
+                ),
+                _statRow(
+                  Icons.calendar_month_outlined,
+                  '${stats.longest} days',
+                  'Longest Streak',
+                ),
               ],
             ),
           ),

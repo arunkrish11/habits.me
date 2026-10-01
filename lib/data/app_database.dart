@@ -12,6 +12,7 @@ class Habits extends Table {
   IntColumn get weekdays => integer().withDefault(const Constant(127))();
   DateTimeColumn get endDate => dateTime().nullable()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
+  IntColumn get icon => integer().withDefault(const Constant(0))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
@@ -34,13 +35,16 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'habits'));
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onUpgrade: (m, from, to) async {
       if (from < 2) {
         await m.addColumn(habitLogs, habitLogs.status);
+      }
+      if (from < 3) {
+        await m.addColumn(habits, habits.icon);
       }
     },
     beforeOpen: (details) async {

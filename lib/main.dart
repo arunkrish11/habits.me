@@ -10,7 +10,11 @@ import 'features/dashboard/dashboard_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await NotificationService.init();
+  try {
+    await NotificationService.init();
+  } catch (e) {
+    debugPrint('Notification init failed: $e');
+  }
   final prefs = await SharedPreferences.getInstance();
   final i = (prefs.getInt('theme_index') ?? 0).clamp(0, presets.length - 1);
   AppColors.apply(presets[i], i);

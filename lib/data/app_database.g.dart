@@ -84,6 +84,16 @@ class $HabitsTable extends Habits with TableInfo<$HabitsTable, Habit> {
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _iconMeta = const VerificationMeta('icon');
+  @override
+  late final GeneratedColumn<int> icon = GeneratedColumn<int>(
+    'icon',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -104,6 +114,7 @@ class $HabitsTable extends Habits with TableInfo<$HabitsTable, Habit> {
     weekdays,
     endDate,
     isActive,
+    icon,
     createdAt,
   ];
   @override
@@ -153,6 +164,12 @@ class $HabitsTable extends Habits with TableInfo<$HabitsTable, Habit> {
         isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
       );
     }
+    if (data.containsKey('icon')) {
+      context.handle(
+        _iconMeta,
+        icon.isAcceptableOrUnknown(data['icon']!, _iconMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -192,6 +209,10 @@ class $HabitsTable extends Habits with TableInfo<$HabitsTable, Habit> {
         DriftSqlType.bool,
         data['${effectivePrefix}is_active'],
       )!,
+      icon: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}icon'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -212,6 +233,7 @@ class Habit extends DataClass implements Insertable<Habit> {
   final int weekdays;
   final DateTime? endDate;
   final bool isActive;
+  final int icon;
   final DateTime createdAt;
   const Habit({
     required this.id,
@@ -220,6 +242,7 @@ class Habit extends DataClass implements Insertable<Habit> {
     required this.weekdays,
     this.endDate,
     required this.isActive,
+    required this.icon,
     required this.createdAt,
   });
   @override
@@ -233,6 +256,7 @@ class Habit extends DataClass implements Insertable<Habit> {
       map['end_date'] = Variable<DateTime>(endDate);
     }
     map['is_active'] = Variable<bool>(isActive);
+    map['icon'] = Variable<int>(icon);
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -247,6 +271,7 @@ class Habit extends DataClass implements Insertable<Habit> {
           ? const Value.absent()
           : Value(endDate),
       isActive: Value(isActive),
+      icon: Value(icon),
       createdAt: Value(createdAt),
     );
   }
@@ -263,6 +288,7 @@ class Habit extends DataClass implements Insertable<Habit> {
       weekdays: serializer.fromJson<int>(json['weekdays']),
       endDate: serializer.fromJson<DateTime?>(json['endDate']),
       isActive: serializer.fromJson<bool>(json['isActive']),
+      icon: serializer.fromJson<int>(json['icon']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -276,6 +302,7 @@ class Habit extends DataClass implements Insertable<Habit> {
       'weekdays': serializer.toJson<int>(weekdays),
       'endDate': serializer.toJson<DateTime?>(endDate),
       'isActive': serializer.toJson<bool>(isActive),
+      'icon': serializer.toJson<int>(icon),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -287,6 +314,7 @@ class Habit extends DataClass implements Insertable<Habit> {
     int? weekdays,
     Value<DateTime?> endDate = const Value.absent(),
     bool? isActive,
+    int? icon,
     DateTime? createdAt,
   }) => Habit(
     id: id ?? this.id,
@@ -295,6 +323,7 @@ class Habit extends DataClass implements Insertable<Habit> {
     weekdays: weekdays ?? this.weekdays,
     endDate: endDate.present ? endDate.value : this.endDate,
     isActive: isActive ?? this.isActive,
+    icon: icon ?? this.icon,
     createdAt: createdAt ?? this.createdAt,
   );
   Habit copyWithCompanion(HabitsCompanion data) {
@@ -307,6 +336,7 @@ class Habit extends DataClass implements Insertable<Habit> {
       weekdays: data.weekdays.present ? data.weekdays.value : this.weekdays,
       endDate: data.endDate.present ? data.endDate.value : this.endDate,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      icon: data.icon.present ? data.icon.value : this.icon,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -320,6 +350,7 @@ class Habit extends DataClass implements Insertable<Habit> {
           ..write('weekdays: $weekdays, ')
           ..write('endDate: $endDate, ')
           ..write('isActive: $isActive, ')
+          ..write('icon: $icon, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -333,6 +364,7 @@ class Habit extends DataClass implements Insertable<Habit> {
     weekdays,
     endDate,
     isActive,
+    icon,
     createdAt,
   );
   @override
@@ -345,6 +377,7 @@ class Habit extends DataClass implements Insertable<Habit> {
           other.weekdays == this.weekdays &&
           other.endDate == this.endDate &&
           other.isActive == this.isActive &&
+          other.icon == this.icon &&
           other.createdAt == this.createdAt);
 }
 
@@ -355,6 +388,7 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
   final Value<int> weekdays;
   final Value<DateTime?> endDate;
   final Value<bool> isActive;
+  final Value<int> icon;
   final Value<DateTime> createdAt;
   const HabitsCompanion({
     this.id = const Value.absent(),
@@ -363,6 +397,7 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
     this.weekdays = const Value.absent(),
     this.endDate = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.icon = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   HabitsCompanion.insert({
@@ -372,6 +407,7 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
     this.weekdays = const Value.absent(),
     this.endDate = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.icon = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : title = Value(title);
   static Insertable<Habit> custom({
@@ -381,6 +417,7 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
     Expression<int>? weekdays,
     Expression<DateTime>? endDate,
     Expression<bool>? isActive,
+    Expression<int>? icon,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -390,6 +427,7 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
       if (weekdays != null) 'weekdays': weekdays,
       if (endDate != null) 'end_date': endDate,
       if (isActive != null) 'is_active': isActive,
+      if (icon != null) 'icon': icon,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -401,6 +439,7 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
     Value<int>? weekdays,
     Value<DateTime?>? endDate,
     Value<bool>? isActive,
+    Value<int>? icon,
     Value<DateTime>? createdAt,
   }) {
     return HabitsCompanion(
@@ -410,6 +449,7 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
       weekdays: weekdays ?? this.weekdays,
       endDate: endDate ?? this.endDate,
       isActive: isActive ?? this.isActive,
+      icon: icon ?? this.icon,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -435,6 +475,9 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
     }
+    if (icon.present) {
+      map['icon'] = Variable<int>(icon.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -450,6 +493,7 @@ class HabitsCompanion extends UpdateCompanion<Habit> {
           ..write('weekdays: $weekdays, ')
           ..write('endDate: $endDate, ')
           ..write('isActive: $isActive, ')
+          ..write('icon: $icon, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -782,6 +826,7 @@ typedef $$HabitsTableCreateCompanionBuilder = HabitsCompanion Function({
   Value<int> weekdays,
   Value<DateTime?> endDate,
   Value<bool> isActive,
+  Value<int> icon,
   Value<DateTime> createdAt,
 });
 typedef $$HabitsTableUpdateCompanionBuilder = HabitsCompanion Function({
@@ -791,6 +836,7 @@ typedef $$HabitsTableUpdateCompanionBuilder = HabitsCompanion Function({
   Value<int> weekdays,
   Value<DateTime?> endDate,
   Value<bool> isActive,
+  Value<int> icon,
   Value<DateTime> createdAt,
 });
 
@@ -853,6 +899,11 @@ class $$HabitsTableFilterComposer
 
   ColumnFilters<bool> get isActive => $composableBuilder(
     column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get icon => $composableBuilder(
+    column: $table.icon,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -926,6 +977,11 @@ class $$HabitsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get icon => $composableBuilder(
+    column: $table.icon,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -960,6 +1016,9 @@ class $$HabitsTableAnnotationComposer
 
   GeneratedColumn<bool> get isActive =>
       $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<int> get icon =>
+      $composableBuilder(column: $table.icon, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -1024,6 +1083,7 @@ class $$HabitsTableTableManager
                 Value<int> weekdays = const Value.absent(),
                 Value<DateTime?> endDate = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<int> icon = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => HabitsCompanion(
                 id: id,
@@ -1032,6 +1092,7 @@ class $$HabitsTableTableManager
                 weekdays: weekdays,
                 endDate: endDate,
                 isActive: isActive,
+                icon: icon,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -1042,6 +1103,7 @@ class $$HabitsTableTableManager
                 Value<int> weekdays = const Value.absent(),
                 Value<DateTime?> endDate = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<int> icon = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => HabitsCompanion.insert(
                 id: id,
@@ -1050,6 +1112,7 @@ class $$HabitsTableTableManager
                 weekdays: weekdays,
                 endDate: endDate,
                 isActive: isActive,
+                icon: icon,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0
